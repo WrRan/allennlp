@@ -187,7 +187,7 @@ class BertBasicWordSplitter(WordSplitter):
     """
     The ``BasicWordSplitter`` from the BERT implementation.
     This is used to split a sentence into words.
-    Then the ``BertTokenIndexer`` converts each word into wordpieces.
+    Then the ``WordpieceIndexer`` converts each word into wordpieces.
     """
     def __init__(self,
                  do_lower_case: bool = True,
