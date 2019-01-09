@@ -1,6 +1,7 @@
 import re
 from typing import List
 
+from allennlp.common.file_utils import cached_path
 from overrides import overrides
 import spacy
 import ftfy
@@ -184,6 +185,7 @@ class OpenAISplitter(WordSplitter):
 
 @WordSplitter.register("bert-basic")
 class BertBasicWordSplitter(WordSplitter):
+    _DEAFULT_NEVER_SPLIT_TOKENS = ("[UNK]", "[SEP]", "[PAD]", "[CLS]", "[MASK]")
     """
     The ``BasicWordSplitter`` from the BERT implementation.
     This is used to split a sentence into words.
@@ -191,8 +193,16 @@ class BertBasicWordSplitter(WordSplitter):
     """
     def __init__(self,
                  do_lower_case: bool = True,
-                 never_split: List[str] = ("[UNK]", "[SEP]", "[PAD]", "[CLS]", "[MASK]")) -> None:
-        self.basic_tokenizer = BertTokenizer(do_lower_case, never_split)
+                 never_split_tokens: List[str] = None,
+                 never_split_file_path: str = None) -> None:
+        never_split_tokens = never_split_tokens or BertBasicWordSplitter._DEAFULT_NEVER_SPLIT_TOKENS
+        never_split_tokens = list(never_split_tokens)
+        if never_split_file_path is not None:
+            never_split_file_path = cached_path(never_split_file_path)
+            with open(never_split_file_path) as fh:
+                for line in fh:
+                    never_split_tokens.append(line.strip())
+        self.basic_tokenizer = BertTokenizer(do_lower_case, never_split_tokens)
 
     @overrides
     def split_words(self, sentence: str) -> List[Token]:
