@@ -1,11 +1,11 @@
 # pylint: disable=no-self-use,invalid-name
-
 from allennlp.common.testing import AllenNlpTestCase
 from allennlp.data.tokenizers.token import Token
 from allennlp.data.tokenizers.word_splitter import LettersDigitsWordSplitter
 from allennlp.data.tokenizers.word_splitter import SimpleWordSplitter
 from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
 from allennlp.data.tokenizers.word_splitter import OpenAISplitter
+from allennlp.data.tokenizers.word_splitter import BertBasicWordSplitter
 
 
 class TestSimpleWordSplitter(AllenNlpTestCase):
@@ -151,6 +151,7 @@ class TestSpacyWordSplitter(AllenNlpTestCase):
             for batch_word, separate_word in zip(batch_sentence, separate_sentence):
                 assert batch_word.text == separate_word.text
 
+
 class TestOpenAiWordSplitter(AllenNlpTestCase):
     def setUp(self):
         super(TestOpenAiWordSplitter, self).setUp()
@@ -161,3 +162,42 @@ class TestOpenAiWordSplitter(AllenNlpTestCase):
         expected_tokens = ['This', 'sentence', '?', 'a', '!', '?', '!']
         tokens = [t.text for t in self.word_splitter.split_words(sentence)]
         assert tokens == expected_tokens
+
+
+class TestBertBasicWordSplitter(AllenNlpTestCase):
+    def setUp(self):
+        super().setUp()
+        self.never_split_file_path = self.FIXTURES_ROOT / "bert" / "never_split_tokens.txt"
+
+    def test_never_split(self):
+        # use default never_split_tokens
+        word_splitter = BertBasicWordSplitter()
+        never_split_tokens = list(BertBasicWordSplitter._DEAFULT_NEVER_SPLIT_TOKENS)
+        tokens = [token.text for token in word_splitter.split_words(" ".join(never_split_tokens))]
+        assert tokens == never_split_tokens
+        # but still split some special tokens
+        tokens = [token.text for token in word_splitter.split_words("[unused0]")]
+        assert tokens == ["[", "unused0", "]"]
+
+        # do not need never_split_tokens
+        word_splitter = BertBasicWordSplitter(never_split_tokens=[],
+                                              do_lower_case=True)
+        tokens = [token.text for token in word_splitter.split_words("[UNK]")]
+        assert tokens == ["[", "unk", "]"]
+
+        # using never_split_tokens and never_split_file_path
+        word_splitter = BertBasicWordSplitter(never_split_file_path=self.never_split_file_path)
+        specific_token = "[unused0]"
+        never_split_tokens = list(BertBasicWordSplitter._DEAFULT_NEVER_SPLIT_TOKENS)
+        sentence = " ".join(never_split_tokens) + " " + specific_token
+        tokens = [token.text for token in word_splitter.split_words(sentence)]
+        assert tokens == never_split_tokens + [specific_token]
+
+        # ignore never_split_tokens, but use never_split_file_path
+        word_splitter = BertBasicWordSplitter(do_lower_case=True,
+                                              never_split_tokens=[],
+                                              never_split_file_path=self.never_split_file_path)
+        sentence = "[UNK] [unused0]"
+        tokens = [token.text
+                  for token in word_splitter.split_words(sentence)]
+        assert tokens == ["[", "unk", "]", "[unused0]"]

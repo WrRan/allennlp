@@ -190,15 +190,22 @@ class BertBasicWordSplitter(WordSplitter):
     The ``BasicWordSplitter`` from the BERT implementation.
     This is used to split a sentence into words.
     Then the ``WordpieceIndexer`` converts each word into wordpieces.
+    
+    If you want never split some text, please set ``never_split_tokens`` or ``never_split_file_path``.
+    By default we don't split ``"[UNK]"``, ``"[SEP]"``, ``"[PAD]"``, ``"[CLS]"`` and ``"[MASK]"``.
     """
     def __init__(self,
                  do_lower_case: bool = True,
                  never_split_tokens: List[str] = None,
                  never_split_file_path: str = None) -> None:
-        never_split_tokens = never_split_tokens or BertBasicWordSplitter._DEAFULT_NEVER_SPLIT_TOKENS
+        if never_split_tokens is not None:
+            never_split_tokens = never_split_tokens
+        else:
+            never_split_tokens = BertBasicWordSplitter._DEAFULT_NEVER_SPLIT_TOKENS
         never_split_tokens = list(never_split_tokens)
         if never_split_file_path is not None:
             never_split_file_path = cached_path(never_split_file_path)
+            never_split_tokens = never_split_tokens or []
             with open(never_split_file_path) as fh:
                 for line in fh:
                     never_split_tokens.append(line.strip())
