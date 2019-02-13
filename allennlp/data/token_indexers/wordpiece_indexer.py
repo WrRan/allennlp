@@ -285,6 +285,8 @@ def _get_token_type_ids(wordpiece_ids: List[int],
             token_type_ids.append(type_id)
     # The pre-trained BERT models have just _two_ token_type_ids (0 and 1).
     if any(item >= 2 for item in token_type_ids):
+        url = 'https://github.com/google-research/bert/issues/27'
         raise ConfigurationError("Because the pre-train BERT models have just two token_type_ids. "
-                                 "We do not support more than two sentences for now.")
+                                 "We do not support more than two sentences for now. The potential "
+                                 f"solution can be found at {url}.")
     return token_type_ids
