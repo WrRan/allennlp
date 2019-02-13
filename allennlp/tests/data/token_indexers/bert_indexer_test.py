@@ -1,4 +1,7 @@
 # pylint: disable=no-self-use,invalid-name,protected-access
+import pytest
+from allennlp.common.checks import ConfigurationError
+
 from allennlp.common.testing import ModelTestCase
 from allennlp.data.token_indexers.wordpiece_indexer import PretrainedBertIndexer, _get_token_type_ids
 from allennlp.data.tokenizers import WordTokenizer, Token
@@ -105,23 +108,28 @@ class TestBertIndexer(ModelTestCase):
         desired_token_type_ids = [0, 0, 0, 0, 0, 0]
         assert _get_token_type_ids(wordpiece_ids, separator_ids) == desired_token_type_ids
 
-        wordpiece_ids = [0, 1, 2, 3, 1, 2, 3, 1, 2]
+        wordpiece_ids = [0, 1, 2, 3, 4, 1, 2, 3, 4]
 
         # when the `separator` appears many times
-        separator_ids = [2]
-        desired_token_type_ids = [0, 0, 0, 1, 1, 1, 2, 2, 2]
+        separator_ids = [4]
+        desired_token_type_ids = [0, 0, 0, 0, 0, 1, 1, 1, 1]
         assert _get_token_type_ids(wordpiece_ids, separator_ids) == desired_token_type_ids
 
         # when the `separator` contains multi-tokens and appears many times
-        separator_ids = [1, 2]
-        desired_token_type_ids = [0, 0, 0, 1, 1, 1, 2, 2, 2]
+        separator_ids = [3, 4]
+        desired_token_type_ids = [0, 0, 0, 0, 0, 1, 1, 1, 1]
         assert _get_token_type_ids(wordpiece_ids, separator_ids) == desired_token_type_ids
 
         # edge case: the `separator` contains multi-tokens and
         # some of them are same as the end of the word pieces
-        separator_ids = [2, 3]
-        desired_token_type_ids = [0, 0, 0, 0, 1, 1, 1, 2, 2]
+        separator_ids = [1, 2, 3, 4]
+        desired_token_type_ids = [0, 0, 0, 0, 0, 1, 1, 1, 1]
         assert _get_token_type_ids(wordpiece_ids, separator_ids) == desired_token_type_ids
+
+        # we do not support more than two sentences
+        # because pre-trained BERT models just contain two token_type_ids
+        with pytest.raises(ConfigurationError):
+            _get_token_type_ids([0, 2, 1, 2, 3, 2], [2])
 
     def test_token_type_ids(self):
         tokenizer = WordTokenizer()
